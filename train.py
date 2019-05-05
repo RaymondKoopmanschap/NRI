@@ -12,12 +12,13 @@ from torch.optim import lr_scheduler
 
 from utils import *
 from modules import *
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='Disables CUDA training.')
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=500,
+parser.add_argument('--epochs', type=int, default=100,
                     help='Number of epochs to train.')
 parser.add_argument('--batch-size', type=int, default=128,
                     help='Number of samples per batch.')
@@ -52,7 +53,7 @@ parser.add_argument('--edge-types', type=int, default=2,
                     help='The number of edge types to infer.')
 parser.add_argument('--dims', type=int, default=4,
                     help='The number of input dimensions (position + velocity).')
-parser.add_argument('--timesteps', type=int, default=49,
+parser.add_argument('--timesteps', type=int, default=49,  # 49
                     help='The number of time steps per sample.')
 parser.add_argument('--prediction-steps', type=int, default=10, metavar='N',
                     help='Num steps to predict before re-using teacher forcing.')
@@ -210,7 +211,7 @@ def train(epoch, best_val_loss):
         else:
             output = decoder(data, edges, rel_rec, rel_send,
                              args.prediction_steps)
-
+        # print(output.shape)
         target = data[:, :, 1:, :]
 
         loss_nll = nll_gaussian(output, target, args.var)
@@ -252,7 +253,7 @@ def train(epoch, best_val_loss):
 
         # validation output uses teacher forcing
         output = decoder(data, edges, rel_rec, rel_send, 1)
-
+        # print("validation output: " + str(output.shape))
         target = data[:, :, 1:, :]
         loss_nll = nll_gaussian(output, target, args.var)
         loss_kl = kl_categorical_uniform(prob, args.num_atoms, args.edge_types)
@@ -311,7 +312,7 @@ def test():
             relations, volatile=True)
 
         assert (data.size(2) - args.timesteps) >= args.timesteps
-
+        torch.save(data, "data.pt")
         data_encoder = data[:, :, :args.timesteps, :].contiguous()
         data_decoder = data[:, :, -args.timesteps:, :].contiguous()
 
@@ -350,6 +351,10 @@ def test():
                         :].contiguous()
             output = decoder(data_plot, edges, rel_rec, rel_send, 20)
             target = data_plot[:, :, 1:, :]
+            print(output.shape)
+            print(target.shape)
+            torch.save(output, "output.pt")
+            torch.save(target, "target.pt")
 
         mse = ((target - output) ** 2).mean(dim=0).mean(dim=0).mean(dim=-1)
         tot_mse += mse.data.cpu().numpy()
@@ -381,7 +386,7 @@ def test():
               file=log)
         print('MSE: {}'.format(mse_str), file=log)
         log.flush()
-
+    return data, output
 
 # Train model
 t_total = time.time()
@@ -398,7 +403,9 @@ if args.save_folder:
     print("Best Epoch: {:04d}".format(best_epoch), file=log)
     log.flush()
 
-test()
+data, output = test()
 if log is not None:
     print(save_folder)
     log.close()
+
+plot_predictions(data, output)

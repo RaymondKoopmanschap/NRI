@@ -4,6 +4,7 @@ from torch.utils.data.dataset import TensorDataset
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from torch.autograd import Variable
+import matplotlib.pyplot as plt
 
 
 def my_softmax(input, axis=1):
@@ -475,3 +476,21 @@ def edge_accuracy(preds, target):
     correct = preds.float().data.eq(
         target.float().data.view_as(preds)).cpu().sum()
     return np.float(correct) / (target.size(0) * target.size(1))
+
+
+def tensor_to_plot_format(tensor):
+    pos = tensor[0, :, :, 0:2].detach().numpy()
+    x = pos[:, :, 0].T
+    y = pos[:, :, 1].T
+    return x, y
+
+def plot_predictions(data, output):
+    loc_x, loc_y = tensor_to_plot_format(output)
+    loc_x_data, loc_y_data = tensor_to_plot_format(data)
+
+    plt.plot(loc_x, loc_y, label="prediction")
+    plt.plot(loc_x_data, loc_y_data, label="data")
+    plt.plot(loc_x[0, :], loc_y[0, :], 'd')
+    plt.plot(loc_x_data[0], loc_y_data[0], 'd')
+    plt.legend()
+    plt.show()
