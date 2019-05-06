@@ -479,10 +479,12 @@ def edge_accuracy(preds, target):
 
 
 def tensor_to_plot_format(tensor):
+    # Only use the first example of the training data
     pos = tensor[0, :, :, 0:2].detach().numpy()
     x = pos[:, :, 0].T
     y = pos[:, :, 1].T
     return x, y
+
 
 def plot_predictions(data, output):
     loc_x, loc_y = tensor_to_plot_format(output)

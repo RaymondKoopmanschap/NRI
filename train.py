@@ -71,6 +71,7 @@ parser.add_argument('--prior', action='store_true', default=False,
                     help='Whether to use sparsity prior.')
 parser.add_argument('--dynamic-graph', action='store_true', default=False,
                     help='Whether test with dynamically re-computed graph.')
+parser.add_argument('--only-testing', default=False, help='If you only want to test model')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -351,10 +352,6 @@ def test():
                         :].contiguous()
             output = decoder(data_plot, edges, rel_rec, rel_send, 20)
             target = data_plot[:, :, 1:, :]
-            print(output.shape)
-            print(target.shape)
-            torch.save(output, "output.pt")
-            torch.save(target, "target.pt")
 
         mse = ((target - output) ** 2).mean(dim=0).mean(dim=0).mean(dim=-1)
         tot_mse += mse.data.cpu().numpy()
@@ -388,20 +385,22 @@ def test():
         log.flush()
     return data, output
 
-# Train model
-t_total = time.time()
-best_val_loss = np.inf
-best_epoch = 0
-for epoch in range(args.epochs):
-    val_loss = train(epoch, best_val_loss)
-    if val_loss < best_val_loss:
-        best_val_loss = val_loss
-        best_epoch = epoch
-print("Optimization Finished!")
-print("Best Epoch: {:04d}".format(best_epoch))
-if args.save_folder:
-    print("Best Epoch: {:04d}".format(best_epoch), file=log)
-    log.flush()
+
+if args.only_testing is False:
+    # Train model
+    t_total = time.time()
+    best_val_loss = np.inf
+    best_epoch = 0
+    for epoch in range(args.epochs):
+        val_loss = train(epoch, best_val_loss)
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_epoch = epoch
+    print("Optimization Finished!")
+    print("Best Epoch: {:04d}".format(best_epoch))
+    if args.save_folder:
+        print("Best Epoch: {:04d}".format(best_epoch), file=log)
+        log.flush()
 
 data, output = test()
 if log is not None:
