@@ -7,7 +7,7 @@ def planet_data2loc_vel_edges(planets):
     planets = planets.split()
     for planet in planets:
         filename = "planet_data/" + planet + ".txt"
-        planet_data = pd.read_csv(filename)
+        planet_data = pd.read_csv(filename, header=None)
         x = planet_data.iloc[:, 2]
         y = planet_data.iloc[:, 3]
         z = planet_data.iloc[:, 4]

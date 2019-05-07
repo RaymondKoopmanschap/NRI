@@ -313,7 +313,6 @@ def test():
             relations, volatile=True)
 
         assert (data.size(2) - args.timesteps) >= args.timesteps
-        torch.save(data, "data.pt")
         data_encoder = data[:, :, :args.timesteps, :].contiguous()
         data_decoder = data[:, :, -args.timesteps:, :].contiguous()
 
