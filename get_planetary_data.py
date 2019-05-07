@@ -70,7 +70,6 @@ def main(planet_list):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-
     parser.add_argument('--planet_list', type=str, default=[], help="for example: 'earth mars' "
                                                                     "(only use spaces between planets")
     args = parser.parse_args()
