@@ -203,7 +203,6 @@ def train(epoch, best_val_loss):
         data, relations = Variable(data), Variable(relations)
 
         optimizer.zero_grad()
-        print(data.shape)
         logits = encoder(data, rel_rec, rel_send)
         edges = gumbel_softmax(logits, tau=args.temp, hard=args.hard)
         prob = my_softmax(logits, -1)
@@ -315,7 +314,7 @@ def test():
         data, relations = Variable(data, volatile=True), Variable(
             relations, volatile=True)
 
-        assert (data.size(2) - timesteps) >= timesteps
+        # assert (data.size(2) - timesteps) >= timesteps
         data_encoder = data[:, :, :timesteps, :].contiguous()
         data_decoder = data[:, :, -timesteps:, :].contiguous()
 
@@ -350,9 +349,9 @@ def test():
             output = output[:, :, timesteps:, :]
             target = data[:, :, -timesteps:, :]
         else:
-            data_plot = data[:, :, timesteps:timesteps + 21,
+            data_plot = data[:, :, timesteps:timesteps + 20,   # 21
                         :].contiguous()
-            output = decoder(data_plot, edges, rel_rec, rel_send, 20)
+            output = decoder(data_plot, edges, rel_rec, rel_send, 19)  # 20
             target = data_plot[:, :, 1:, :]
 
         mse = ((target - output) ** 2).mean(dim=0).mean(dim=0).mean(dim=-1)
@@ -409,4 +408,4 @@ if log is not None:
     print(save_folder)
     log.close()
 
-plot_predictions(data, output)
+plot_predictions(data, output, args.suffix)

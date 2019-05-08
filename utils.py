@@ -486,7 +486,7 @@ def tensor_to_plot_format(tensor):
     return x, y
 
 
-def plot_predictions(data, output):
+def plot_predictions(data, output, suffix):
     loc_x, loc_y = tensor_to_plot_format(output)
     loc_x_data, loc_y_data = tensor_to_plot_format(data)
 
@@ -495,6 +495,7 @@ def plot_predictions(data, output):
     plt.plot(loc_x[0, :], loc_y[0, :], 'd')
     plt.plot(loc_x_data[0], loc_y_data[0], 'd')
     plt.legend()
+    plt.savefig('plots/prediction' + suffix + '.png')
     plt.show()
 
 

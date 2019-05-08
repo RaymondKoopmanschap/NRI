@@ -13,8 +13,8 @@ VALUES = {
     'table_type': 'VECTOR',
     'center': '500@10',
     'ref_plane': 'FRAME',
-    'start_time': '2018-01-01',
-    'stop_time': '2019-01-01',
+    'start_time': '1755-01-01',
+    'stop_time': '2000-01-01',
     'step_size': '1 d',
     'quantities': '1',   # Only used when table_type is OBSERVER
     'ref_system': 'J200',
@@ -70,7 +70,7 @@ def main(planet_list):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--planet_list', type=str, default=[], help="for example: 'earth mars' "
+    parser.add_argument('--planets', type=str, default=[], help="for example: 'earth mars' "
                                                                     "(only use spaces between planets")
     args = parser.parse_args()
 
