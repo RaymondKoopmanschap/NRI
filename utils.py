@@ -496,3 +496,12 @@ def plot_predictions(data, output):
     plt.plot(loc_x_data[0], loc_y_data[0], 'd')
     plt.legend()
     plt.show()
+
+
+def get_atoms_and_timesteps(suffix):
+
+    train_data = np.load('./data/vel_train' + suffix + '.npy')
+    num_atoms = train_data.shape[3]
+    time_steps = train_data.shape[1]
+
+    return num_atoms, time_steps

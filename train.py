@@ -30,8 +30,8 @@ parser.add_argument('--decoder-hidden', type=int, default=256,
                     help='Number of hidden units.')
 parser.add_argument('--temp', type=float, default=0.5,
                     help='Temperature for Gumbel softmax.')
-parser.add_argument('--num-atoms', type=int, default=5,
-                    help='Number of atoms in simulation.')
+# parser.add_argument('--num-atoms', type=int, default=5,
+#                     help='Number of atoms in simulation.')
 parser.add_argument('--encoder', type=str, default='mlp',
                     help='Type of path encoder model (mlp or cnn).')
 parser.add_argument('--decoder', type=str, default='mlp',
@@ -53,8 +53,8 @@ parser.add_argument('--edge-types', type=int, default=2,
                     help='The number of edge types to infer.')
 parser.add_argument('--dims', type=int, default=4,
                     help='The number of input dimensions (position + velocity).')
-parser.add_argument('--timesteps', type=int, default=49,  # 49
-                    help='The number of time steps per sample.')
+# parser.add_argument('--timesteps', type=int, default=49,  # 49
+#                     help='The number of time steps per sample.')
 parser.add_argument('--prediction-steps', type=int, default=10, metavar='N',
                     help='Num steps to predict before re-using teacher forcing.')
 parser.add_argument('--lr-decay', type=int, default=200,
@@ -108,8 +108,11 @@ else:
 train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min = load_data(
     args.batch_size, args.suffix)
 
+
+num_atoms, timesteps = get_atoms_and_timesteps(args.suffix)
+
 # Generate off-diagonal interaction graph
-off_diag = np.ones([args.num_atoms, args.num_atoms]) - np.eye(args.num_atoms)
+off_diag = np.ones([num_atoms, num_atoms]) - np.eye(num_atoms)
 
 rel_rec = np.array(encode_onehot(np.where(off_diag)[1]), dtype=np.float32)
 rel_send = np.array(encode_onehot(np.where(off_diag)[0]), dtype=np.float32)
@@ -117,7 +120,7 @@ rel_rec = torch.FloatTensor(rel_rec)
 rel_send = torch.FloatTensor(rel_send)
 
 if args.encoder == 'mlp':
-    encoder = MLPEncoder(args.timesteps * args.dims, args.encoder_hidden,
+    encoder = MLPEncoder(timesteps * args.dims, args.encoder_hidden,
                          args.edge_types,
                          args.encoder_dropout, args.factor)
 elif args.encoder == 'cnn':
@@ -156,8 +159,8 @@ scheduler = lr_scheduler.StepLR(optimizer, step_size=args.lr_decay,
                                 gamma=args.gamma)
 
 # Linear indices of an upper triangular mx, used for acc calculation
-triu_indices = get_triu_offdiag_indices(args.num_atoms)
-tril_indices = get_tril_offdiag_indices(args.num_atoms)
+triu_indices = get_triu_offdiag_indices(num_atoms)
+tril_indices = get_tril_offdiag_indices(num_atoms)
 
 if args.prior:
     prior = np.array([0.91, 0.03, 0.03, 0.03])  # TODO: hard coded for now
@@ -200,7 +203,7 @@ def train(epoch, best_val_loss):
         data, relations = Variable(data), Variable(relations)
 
         optimizer.zero_grad()
-
+        print(data.shape)
         logits = encoder(data, rel_rec, rel_send)
         edges = gumbel_softmax(logits, tau=args.temp, hard=args.hard)
         prob = my_softmax(logits, -1)
@@ -208,7 +211,7 @@ def train(epoch, best_val_loss):
         if args.decoder == 'rnn':
             output = decoder(data, edges, rel_rec, rel_send, 100,
                              burn_in=True,
-                             burn_in_steps=args.timesteps - args.prediction_steps)
+                             burn_in_steps=timesteps - args.prediction_steps)
         else:
             output = decoder(data, edges, rel_rec, rel_send,
                              args.prediction_steps)
@@ -218,9 +221,9 @@ def train(epoch, best_val_loss):
         loss_nll = nll_gaussian(output, target, args.var)
 
         if args.prior:
-            loss_kl = kl_categorical(prob, log_prior, args.num_atoms)
+            loss_kl = kl_categorical(prob, log_prior, num_atoms)
         else:
-            loss_kl = kl_categorical_uniform(prob, args.num_atoms,
+            loss_kl = kl_categorical_uniform(prob, num_atoms,
                                              args.edge_types)
 
         loss = loss_nll + loss_kl
@@ -257,7 +260,7 @@ def train(epoch, best_val_loss):
         # print("validation output: " + str(output.shape))
         target = data[:, :, 1:, :]
         loss_nll = nll_gaussian(output, target, args.var)
-        loss_kl = kl_categorical_uniform(prob, args.num_atoms, args.edge_types)
+        loss_kl = kl_categorical_uniform(prob, num_atoms, args.edge_types)
 
         acc = edge_accuracy(logits, relations)
         acc_val.append(acc)
@@ -312,9 +315,9 @@ def test():
         data, relations = Variable(data, volatile=True), Variable(
             relations, volatile=True)
 
-        assert (data.size(2) - args.timesteps) >= args.timesteps
-        data_encoder = data[:, :, :args.timesteps, :].contiguous()
-        data_decoder = data[:, :, -args.timesteps:, :].contiguous()
+        assert (data.size(2) - timesteps) >= timesteps
+        data_encoder = data[:, :, :timesteps, :].contiguous()
+        data_decoder = data[:, :, -timesteps:, :].contiguous()
 
         logits = encoder(data_encoder, rel_rec, rel_send)
         edges = gumbel_softmax(logits, tau=args.temp, hard=True)
@@ -325,7 +328,7 @@ def test():
 
         target = data_decoder[:, :, 1:, :]
         loss_nll = nll_gaussian(output, target, args.var)
-        loss_kl = kl_categorical_uniform(prob, args.num_atoms, args.edge_types)
+        loss_kl = kl_categorical_uniform(prob, num_atoms, args.edge_types)
 
         acc = edge_accuracy(logits, relations)
         acc_test.append(acc)
@@ -338,16 +341,16 @@ def test():
         if args.decoder == 'rnn':
             if args.dynamic_graph:
                 output = decoder(data, edges, rel_rec, rel_send, 100,
-                                 burn_in=True, burn_in_steps=args.timesteps,
+                                 burn_in=True, burn_in_steps=timesteps,
                                  dynamic_graph=True, encoder=encoder,
                                  temp=args.temp)
             else:
                 output = decoder(data, edges, rel_rec, rel_send, 100,
-                                 burn_in=True, burn_in_steps=args.timesteps)
-            output = output[:, :, args.timesteps:, :]
-            target = data[:, :, -args.timesteps:, :]
+                                 burn_in=True, burn_in_steps=timesteps)
+            output = output[:, :, timesteps:, :]
+            target = data[:, :, -timesteps:, :]
         else:
-            data_plot = data[:, :, args.timesteps:args.timesteps + 21,
+            data_plot = data[:, :, timesteps:timesteps + 21,
                         :].contiguous()
             output = decoder(data_plot, edges, rel_rec, rel_send, 20)
             target = data_plot[:, :, 1:, :]
