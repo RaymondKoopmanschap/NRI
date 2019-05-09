@@ -93,7 +93,7 @@ else:
 train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min = load_data(
     args.batch_size, args.suffix)
 
-num_atoms, timesteps = get_atoms_and_timesteps(args.suffix)
+num_atoms, timesteps, pred_steps = get_atoms_and_train_pred_steps(args.suffix)
 
 # Generate fully-connected interaction graph (sparse graphs would also work)
 off_diag = np.ones([num_atoms, num_atoms]) - np.eye(num_atoms)

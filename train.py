@@ -109,7 +109,7 @@ train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min = lo
     args.batch_size, args.suffix)
 
 
-num_atoms, timesteps = get_atoms_and_timesteps(args.suffix)
+num_atoms, timesteps, pred_steps = get_atoms_and_train_pred_steps(args.suffix)
 
 # Generate off-diagonal interaction graph
 off_diag = np.ones([num_atoms, num_atoms]) - np.eye(num_atoms)
@@ -228,6 +228,10 @@ def train(epoch, best_val_loss):
         loss = loss_nll + loss_kl
 
         acc = edge_accuracy(logits, relations)
+        # print(relations[0])
+        _, preds = logits.max(-1)
+        # print(logits[0])
+        # print(preds[0])
         acc_train.append(acc)
 
         loss.backward()
@@ -256,7 +260,6 @@ def train(epoch, best_val_loss):
 
         # validation output uses teacher forcing
         output = decoder(data, edges, rel_rec, rel_send, 1)
-        # print("validation output: " + str(output.shape))
         target = data[:, :, 1:, :]
         loss_nll = nll_gaussian(output, target, args.var)
         loss_kl = kl_categorical_uniform(prob, num_atoms, args.edge_types)
@@ -347,11 +350,12 @@ def test():
                 output = decoder(data, edges, rel_rec, rel_send, 100,
                                  burn_in=True, burn_in_steps=timesteps)
             output = output[:, :, timesteps:, :]
-            target = data[:, :, -timesteps:, :]
+            target = data[:, :, timesteps+1:, :]
+
         else:
-            data_plot = data[:, :, timesteps:timesteps + 20,   # 21
+            data_plot = data[:, :, timesteps:timesteps + pred_steps,   # 21
                         :].contiguous()
-            output = decoder(data_plot, edges, rel_rec, rel_send, 19)  # 20
+            output = decoder(data_plot, edges, rel_rec, rel_send, pred_steps)  # 20
             target = data_plot[:, :, 1:, :]
 
         mse = ((target - output) ** 2).mean(dim=0).mean(dim=0).mean(dim=-1)

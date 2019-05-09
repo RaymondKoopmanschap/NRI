@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--planets', type=str, default=[], help="for example: 'earth mars' "
                                                                 "(only use spaces between planets")
 parser.add_argument('--num_timesteps', type=int, default=100, help='number of time steps for training data')
-parser.add_argument('--num_pred_steps', type=int, default=50, help='number of steps you want to predict')
+parser.add_argument('--num-pred_steps', type=int, default=50, help='number of steps you want to predict')
 parser.add_argument('--num-train', type=int, default=100, help='number of training examples')
 parser.add_argument('--num-valid', type=int, default=50, help='number of validation examples')
 parser.add_argument('--num-test', type=int, default=50, help='number of test examples')
@@ -56,7 +56,8 @@ def generate_data(prefix, planets, num_samples, num_steps):
             vel_all = np.concatenate([vel_all, vel_planet], axis=3)
 
     num_planets = str(len(planets))
-    edges = np.zeros((len(planets), len(planets)))
+    # edges = np.zeros((len(planets), len(planets)))
+    edges = np.array([[0, 1], [0, 0]])
     edges = np.repeat(edges, num_samples, axis=0)
     np.save('./data/loc_' + prefix + '_planets' + num_planets + '.npy', loc_all)
     np.save('./data/vel_' + prefix + '_planets' + num_planets + '.npy', vel_all)

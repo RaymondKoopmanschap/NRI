@@ -499,10 +499,15 @@ def plot_predictions(data, output, suffix):
     plt.show()
 
 
-def get_atoms_and_timesteps(suffix):
+def get_atoms_and_train_pred_steps(suffix):
 
-    train_data = np.load('./data/vel_train' + suffix + '.npy')
+    train_data = np.load('./data/loc_train' + suffix + '.npy')
+    test_data = np.load('./data/loc_test' + suffix + '.npy')
     num_atoms = train_data.shape[3]
     time_steps = train_data.shape[1]
+    test_steps = test_data.shape[1]
+    pred_steps = test_steps - time_steps
 
-    return num_atoms, time_steps
+    return num_atoms, time_steps, pred_steps
+
+
