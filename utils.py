@@ -480,10 +480,7 @@ def edge_accuracy(preds, target):
 
 def tensor_to_plot_format(tensor):
     # Only use the first example of the training data
-    if tensor.is_cuda:
-        pos = tensor[0, :, :, 0:2].cpu().numpy()
-    else:
-        pos = tensor[0, :, :, 0:2].detach().numpy()
+    pos = tensor[0, :, :, 0:2].cpu().detach().numpy()
     x = pos[:, :, 0].T
     y = pos[:, :, 1].T
     return x, y
