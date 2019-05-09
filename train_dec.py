@@ -119,8 +119,12 @@ elif args.decoder == 'rnn':
                        skip_first=args.skip_first)
 
 if args.load_folder:
-    load_file = os.path.join(args.load_folder, 'model.pt')
-    model.load_state_dict(torch.load(load_file))
+    model_file = os.path.join(args.load_folder, 'decoder.pt')
+    if args.cuda:
+        model.load_state_dict(torch.load(model_file))
+    else:
+        model.load_state_dict(torch.load(model_file, map_location='cpu'))
+
 
 optimizer = optim.Adam(model.parameters(), lr=args.lr)
 scheduler = lr_scheduler.StepLR(optimizer, step_size=args.lr_decay,
@@ -265,7 +269,9 @@ def test():
     counter = 0
 
     model.eval()
-    model.load_state_dict(torch.load(model_file))
+    model.load_state_dict(torch.load(model_file, map_location='cpu'))
+
+
     for batch_idx, (inputs, relations) in enumerate(test_loader):
         rel_type_onehot = torch.FloatTensor(inputs.size(0), rel_rec.size(0),
                                             args.edge_types)
