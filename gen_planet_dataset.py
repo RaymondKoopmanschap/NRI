@@ -20,6 +20,7 @@ args = parser.parse_args()
 def generate_data(prefix, planets, num_samples, num_steps):
     first = True
     planets = planets.split()
+    print(planets)
     for planet in planets:
         filename = "planet_data/" + planet + ".txt"
         planet_data = pd.read_csv(filename, header=None)
@@ -56,8 +57,15 @@ def generate_data(prefix, planets, num_samples, num_steps):
             vel_all = np.concatenate([vel_all, vel_planet], axis=3)
 
     num_planets = str(len(planets))
-    # edges = np.zeros((len(planets), len(planets)))
-    edges = np.array([[0, 1], [0, 0]])
+    edges = np.zeros((len(planets), len(planets)))
+
+    # This makes sure that the earth influences the moon and sun influences all other planets
+    if 'earth' in planets:
+        if 'moon' in planets:
+            edges[planets.index('earth'), planets.index('moon')] = 1
+    if 'sun' in planets:
+        edges[planets.index('sun'), :] = 1
+
     edges = np.repeat(edges, num_samples, axis=0)
     np.save('./data/loc_' + prefix + '_planets' + num_planets + '.npy', loc_all)
     np.save('./data/vel_' + prefix + '_planets' + num_planets + '.npy', vel_all)

@@ -228,10 +228,6 @@ def train(epoch, best_val_loss):
         loss = loss_nll + loss_kl
 
         acc = edge_accuracy(logits, relations)
-        # print(relations[0])
-        _, preds = logits.max(-1)
-        # print(logits[0])
-        # print(preds[0])
         acc_train.append(acc)
 
         loss.backward()
