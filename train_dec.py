@@ -194,10 +194,9 @@ def train(epoch, best_val_loss):
         loss.backward()
 
         optimizer.step()
-
-        loss_train.append(loss.data[0])
-        mse_train.append(mse.data[0])
-        mse_baseline_train.append(mse_baseline.data[0])
+        loss_train.append(loss.data.item())
+        mse_train.append(mse.data.item())
+        mse_baseline_train.append(mse_baseline.data.item())
 
     model.eval()
     for batch_idx, (inputs, relations) in enumerate(valid_loader):
@@ -230,9 +229,9 @@ def train(epoch, best_val_loss):
         mse = F.mse_loss(output, target)
         mse_baseline = F.mse_loss(inputs[:, :, :-1, :], inputs[:, :, 1:, :])
 
-        loss_val.append(loss.data[0])
-        mse_val.append(mse.data[0])
-        mse_baseline_val.append(mse_baseline.data[0])
+        loss_val.append(loss.data.item())
+        mse_val.append(mse.data.item())
+        mse_baseline_val.append(mse_baseline.data.item())
 
     print('Epoch: {:04d}'.format(epoch),
           'nll_train: {:.10f}'.format(np.mean(loss_train)),
@@ -301,9 +300,9 @@ def test():
         mse = F.mse_loss(output, target)
         mse_baseline = F.mse_loss(ins_cut[:, :, :-1, :], ins_cut[:, :, 1:, :])
 
-        loss_test.append(loss.data[0])
-        mse_test.append(mse.data[0])
-        mse_baseline_test.append(mse_baseline.data[0])
+        loss_test.append(loss.data.item())
+        mse_test.append(mse.data.item())
+        mse_baseline_test.append(mse_baseline.data.item())
 
         # For plotting purposes
         if args.decoder == 'rnn':
@@ -314,9 +313,9 @@ def test():
             baseline = inputs[:, :, -(timesteps + 1):-timesteps,
                        :].expand_as(target)
         else:
-            data_plot = inputs[:, :, timesteps:timesteps + 21,
+            data_plot = inputs[:, :, timesteps:timesteps + pred_steps,
                         :].contiguous()
-            output = model(data_plot, rel_type_onehot, rel_rec, rel_send, 20)
+            output = model(data_plot, rel_type_onehot, rel_rec, rel_send, pred_steps)
             target = data_plot[:, :, 1:, :]
             baseline = inputs[:, :, timesteps:timesteps + 1,
                        :].expand_as(target)

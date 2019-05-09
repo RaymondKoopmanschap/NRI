@@ -20,7 +20,6 @@ args = parser.parse_args()
 def generate_data(prefix, planets, num_samples, num_steps):
     first = True
     planets = planets.split()
-    print(planets)
     for planet in planets:
         filename = "planet_data/" + planet + ".txt"
         planet_data = pd.read_csv(filename, header=None)
@@ -48,8 +47,8 @@ def generate_data(prefix, planets, num_samples, num_steps):
                 loc_planet = np.concatenate([loc_planet, loc], axis=0)
                 vel_planet = np.concatenate([vel_planet, vel], axis=0)
 
-            if i % 1000 == 0:
-                print(prefix + ": number of samples for " + planet + " completed: " + str(i))
+            if (i+1) % 1000 == 0:
+                print(prefix + ": number of samples for " + planet + " completed: " + str(i+1))
 
         if first:
             loc_all = loc_planet
@@ -70,9 +69,9 @@ def generate_data(prefix, planets, num_samples, num_steps):
         edges[planets.index('sun'), :] = 1
 
     edges = np.repeat(edges, num_samples, axis=0)
-    np.save('./data/loc_' + prefix + '_planets' + num_planets + '.npy', loc_all)
-    np.save('./data/vel_' + prefix + '_planets' + num_planets + '.npy', vel_all)
-    np.save('./data/edges_' + prefix + '_planets' + num_planets + '.npy', edges)
+    np.save('./data/loc_' + prefix + '_planets' + num_planets + '_' + str(num_samples) + '.npy', loc_all)
+    np.save('./data/vel_' + prefix + '_planets' + num_planets + '_' + str(num_samples) + '.npy', vel_all)
+    np.save('./data/edges_' + prefix + '_planets' + num_planets + '_' + str(num_samples) + '.npy', edges)
 
 
 planets = args.planets
