@@ -13,6 +13,7 @@ parser.add_argument('--num-pred_steps', type=int, default=50, help='number of st
 parser.add_argument('--num-train', type=int, default=100, help='number of training examples')
 parser.add_argument('--num-valid', type=int, default=50, help='number of validation examples')
 parser.add_argument('--num-test', type=int, default=50, help='number of test examples')
+parser.add_argument('--suffix', type=str, default='', help='add another name to distinguish versions')
 
 args = parser.parse_args()
 
