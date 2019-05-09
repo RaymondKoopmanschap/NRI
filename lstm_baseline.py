@@ -401,6 +401,7 @@ def test():
 
     return inputs, output
 
+
 if args.only_testing is False:
     # Train model
     t_total = time.time()

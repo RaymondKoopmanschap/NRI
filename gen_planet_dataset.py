@@ -48,6 +48,9 @@ def generate_data(prefix, planets, num_samples, num_steps):
                 loc_planet = np.concatenate([loc_planet, loc], axis=0)
                 vel_planet = np.concatenate([vel_planet, vel], axis=0)
 
+            if i % 1000 == 0:
+                print(prefix + ": number of samples for " + planet + " completed: " + str(i))
+
         if first:
             loc_all = loc_planet
             vel_all = vel_planet
