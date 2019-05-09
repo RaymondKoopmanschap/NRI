@@ -25,8 +25,8 @@ parser.add_argument('--lr', type=float, default=0.0005,
                     help='Initial learning rate.')
 parser.add_argument('--hidden', type=int, default=256,
                     help='Number of hidden units.')
-parser.add_argument('--num_atoms', type=int, default=5,
-                    help='Number of atoms in simulation.')
+# parser.add_argument('--num_atoms', type=int, default=5,
+#                     help='Number of atoms in simulation.')
 parser.add_argument('--num-layers', type=int, default=2,
                     help='Number of LSTM layers.')
 parser.add_argument('--suffix', type=str, default='_springs',
@@ -42,8 +42,8 @@ parser.add_argument('--load-folder', type=str, default='',
                          'Leave empty to train from scratch')
 parser.add_argument('--dims', type=int, default=4,
                     help='The number of dimensions (position + velocity).')
-parser.add_argument('--timesteps', type=int, default=49,
-                    help='The number of time steps per sample.')
+# parser.add_argument('--timesteps', type=int, default=49,
+#                     help='The number of time steps per sample.')
 parser.add_argument('--prediction-steps', type=int, default=10, metavar='N',
                     help='Num steps to predict before using teacher forcing.')
 parser.add_argument('--lr-decay', type=int, default=200,
@@ -56,6 +56,7 @@ parser.add_argument('--non-markov', action='store_true', default=False,
                     help='Use non-Markovian evaluation setting.')
 parser.add_argument('--var', type=float, default=5e-5,
                     help='Output variance.')
+parser.add_argument('--only-testing', default=False, help='If you only want to test model')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -93,6 +94,7 @@ else:
 train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min = load_data(
     args.batch_size, args.suffix)
 
+num_atoms, timesteps, pred_steps = get_atoms_and_train_pred_steps(args.suffix)
 
 class RecurrentBaseline(nn.Module):
     """LSTM model for joint trajectory prediction."""
@@ -180,7 +182,7 @@ class RecurrentBaseline(nn.Module):
 
 
 model = RecurrentBaseline(args.dims, args.hidden, args.dims,
-                          args.num_atoms, args.num_layers, args.dropout)
+                          num_atoms, args.num_layers, args.dropout)
 if args.load_folder:
     model_file = os.path.join(args.load_folder, 'model.pt')
     model.load_state_dict(torch.load(model_file))
@@ -191,7 +193,7 @@ scheduler = lr_scheduler.StepLR(optimizer, step_size=args.lr_decay,
                                 gamma=args.gamma)
 
 # Linear indices of an upper triangular mx, used for loss calculation
-triu_indices = get_triu_offdiag_indices(args.num_atoms)
+triu_indices = get_triu_offdiag_indices(num_atoms)
 
 if args.cuda:
     model.cuda()
@@ -226,7 +228,7 @@ def train(epoch, best_val_loss):
 
         output = model(data, 100,
                        burn_in=True,
-                       burn_in_steps=args.timesteps - args.prediction_steps)
+                       burn_in_steps=timesteps - args.prediction_steps)
 
         target = data[:, :, 1:, :]
         loss = nll_gaussian(output, target, args.var)
@@ -296,7 +298,7 @@ def test():
     model.load_state_dict(torch.load(model_file))
     for batch_idx, (inputs, relations) in enumerate(test_loader):
 
-        assert (inputs.size(2) - args.timesteps) >= args.timesteps
+        # assert (inputs.size(2) - timesteps) >= timesteps
 
         if args.cuda:
             inputs = inputs.cuda()
@@ -304,7 +306,7 @@ def test():
             inputs = inputs.contiguous()
         inputs = Variable(inputs, volatile=True)
 
-        ins_cut = inputs[:, :, -args.timesteps:, :].contiguous()
+        ins_cut = inputs[:, :, -timesteps:, :].contiguous()
 
         output = model(ins_cut, 1)
 
@@ -324,16 +326,16 @@ def test():
 
             # For plotting purposes
             output = model(inputs, 100, burn_in=True,
-                           burn_in_steps=args.timesteps)
+                           burn_in_steps=timesteps)
 
-            output = output[:, :, args.timesteps:, :]
-            target = inputs[:, :, -args.timesteps:, :]
+            output = output[:, :, timesteps:, :]
+            target = inputs[:, :, -timesteps:, :]
             mse = ((target - output) ** 2).mean(dim=0).mean(dim=0).mean(dim=-1)
             tot_mse += mse.data.cpu().numpy()
             counter += 1
 
             # Baseline over multiple steps
-            baseline = inputs[:, :, -(args.timesteps + 1):-args.timesteps,
+            baseline = inputs[:, :, -(timesteps + 1):-timesteps,
                        :].expand_as(
                 target)
             mse_baseline = ((target - baseline) ** 2).mean(dim=0).mean(
@@ -345,17 +347,17 @@ def test():
 
             # For plotting purposes
             output = model(inputs, 100, burn_in=True,
-                           burn_in_steps=args.timesteps)
+                           burn_in_steps=timesteps)
 
-            output = output[:, :, args.timesteps:args.timesteps + 20, :]
-            target = inputs[:, :, args.timesteps + 1:args.timesteps + 21, :]
+            output = output[:, :, timesteps:timesteps + 20, :]
+            target = inputs[:, :, timesteps + 1:timesteps + 21, :]
 
             mse = ((target - output) ** 2).mean(dim=0).mean(dim=0).mean(dim=-1)
             tot_mse += mse.data.cpu().numpy()
             counter += 1
 
             # Baseline over multiple steps
-            baseline = inputs[:, :, args.timesteps:args.timesteps + 1,
+            baseline = inputs[:, :, timesteps:timesteps + 1,
                        :].expand_as(
                 target)
             mse_baseline = ((target - baseline) ** 2).mean(dim=0).mean(
@@ -397,22 +399,27 @@ def test():
         print('MSE Baseline: {}'.format(mse_baseline_str), file=log)
         log.flush()
 
+    return inputs, output
 
-# Train model
-t_total = time.time()
-best_val_loss = np.inf
-best_epoch = 0
-for epoch in range(args.epochs):
-    val_loss = train(epoch, best_val_loss)
-    if val_loss < best_val_loss:
-        best_val_loss = val_loss
-        best_epoch = epoch
-print("Optimization Finished!")
-print("Best Epoch: {:04d}".format(best_epoch))
-if args.save_folder:
-    print("Best Epoch: {:04d}".format(best_epoch), file=log)
-    log.flush()
-test()
+if args.only_testing is False:
+    # Train model
+    t_total = time.time()
+    best_val_loss = np.inf
+    best_epoch = 0
+    for epoch in range(args.epochs):
+        val_loss = train(epoch, best_val_loss)
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_epoch = epoch
+    print("Optimization Finished!")
+    print("Best Epoch: {:04d}".format(best_epoch))
+    if args.save_folder:
+        print("Best Epoch: {:04d}".format(best_epoch), file=log)
+        log.flush()
+
+inputs, output = test()
 if log is not None:
     print(save_folder)
     log.close()
+
+plot_predictions(inputs, output, args.suffix)
