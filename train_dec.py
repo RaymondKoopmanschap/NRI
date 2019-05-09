@@ -21,14 +21,14 @@ parser.add_argument('--epochs', type=int, default=500,
                     help='Number of epochs to train.')
 parser.add_argument('--batch-size', type=int, default=128,
                     help='Number of samples per batch.')
-parser.add_argument('--timesteps', type=int, default=49,
-                    help='The number of time steps per sample.')
+# parser.add_argument('--timesteps', type=int, default=49,
+#                     help='The number of time steps per sample.')
 parser.add_argument('--lr', type=float, default=0.0005,
                     help='Initial learning rate.')
 parser.add_argument('--hidden', type=int, default=256,
                     help='Number of hidden units.')
-parser.add_argument('--num-atoms', type=int, default=5,
-                    help='Number of atoms in simulation.')
+# parser.add_argument('--num-atoms', type=int, default=5,
+#                     help='Number of atoms in simulation.')
 parser.add_argument('--num-classes', type=int, default=2,
                     help='Number of edge types.')
 parser.add_argument('--suffix', type=str, default='_springs',
@@ -62,6 +62,7 @@ parser.add_argument('--var', type=float, default=5e-5,
                     help='Output variance.')
 parser.add_argument('--fully-connected', action='store_true', default=False,
                     help='Use fully-connected graph.')
+parser.add_argument('--only-testing', default=False, help='If you only want to test model')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -92,8 +93,10 @@ else:
 train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min = load_data(
     args.batch_size, args.suffix)
 
+num_atoms, timesteps = get_atoms_and_timesteps(args.suffix)
+
 # Generate fully-connected interaction graph (sparse graphs would also work)
-off_diag = np.ones([args.num_atoms, args.num_atoms]) - np.eye(args.num_atoms)
+off_diag = np.ones([num_atoms, num_atoms]) - np.eye(num_atoms)
 
 rel_rec = np.array(encode_onehot(np.where(off_diag)[1]), dtype=np.float32)
 rel_send = np.array(encode_onehot(np.where(off_diag)[0]), dtype=np.float32)
@@ -177,7 +180,7 @@ def train(epoch, best_val_loss):
         if args.decoder == 'rnn':
             output = model(inputs, rel_type_onehot, rel_rec, rel_send, 100,
                            burn_in=True,
-                           burn_in_steps=args.timesteps - args.prediction_steps)
+                           burn_in_steps=timesteps - args.prediction_steps)
         else:
             output = model(inputs, rel_type_onehot, rel_rec, rel_send,
                            args.prediction_steps)
@@ -277,7 +280,7 @@ def test():
                 [rel_type_onehot.size(0), rel_type_onehot.size(1)])
             rel_type_onehot = torch.stack([zeros, ones], -1)
 
-        assert (inputs.size(2) - args.timesteps) >= args.timesteps
+        # assert (inputs.size(2) - timesteps) >= timesteps
 
         if args.cuda:
             inputs = inputs.cuda()
@@ -287,7 +290,7 @@ def test():
         inputs, rel_type_onehot = Variable(inputs, volatile=True), Variable(
             rel_type_onehot, volatile=True)
 
-        ins_cut = inputs[:, :, -args.timesteps:, :].contiguous()
+        ins_cut = inputs[:, :, -timesteps:, :].contiguous()
 
         output = model(ins_cut, rel_type_onehot, rel_rec, rel_send, 1)
 
@@ -305,17 +308,17 @@ def test():
         # For plotting purposes
         if args.decoder == 'rnn':
             output = model(inputs, rel_type_onehot, rel_rec, rel_send, 100,
-                           burn_in=True, burn_in_steps=args.timesteps)
-            output = output[:, :, args.timesteps:, :]
-            target = inputs[:, :, -args.timesteps:, :]
-            baseline = inputs[:, :, -(args.timesteps + 1):-args.timesteps,
+                           burn_in=True, burn_in_steps=timesteps)
+            output = output[:, :, timesteps:, :]
+            target = inputs[:, :, -timesteps:, :]
+            baseline = inputs[:, :, -(timesteps + 1):-timesteps,
                        :].expand_as(target)
         else:
-            data_plot = inputs[:, :, args.timesteps:args.timesteps + 21,
+            data_plot = inputs[:, :, timesteps:timesteps + 21,
                         :].contiguous()
             output = model(data_plot, rel_type_onehot, rel_rec, rel_send, 20)
             target = data_plot[:, :, 1:, :]
-            baseline = inputs[:, :, args.timesteps:args.timesteps + 1,
+            baseline = inputs[:, :, timesteps:timesteps + 1,
                        :].expand_as(target)
         mse = ((target - output) ** 2).mean(dim=0).mean(dim=0).mean(dim=-1)
         tot_mse += mse.data.cpu().numpy()
@@ -358,23 +361,27 @@ def test():
         print('MSE: {}'.format(mse_str), file=log)
         print('MSE Baseline: {}'.format(mse_baseline_str), file=log)
         log.flush()
+    return inputs, output
 
+if args.only_testing is False:
+    # Train model
+    t_total = time.time()
+    best_val_loss = np.inf
+    best_epoch = 0
+    for epoch in range(args.epochs):
+        val_loss = train(epoch, best_val_loss)
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_epoch = epoch
+    print("Optimization Finished!")
+    print("Best Epoch: {:04d}".format(best_epoch))
+    if args.save_folder:
+        print("Best Epoch: {:04d}".format(best_epoch), file=log)
+        log.flush()
 
-# Train model
-t_total = time.time()
-best_val_loss = np.inf
-best_epoch = 0
-for epoch in range(args.epochs):
-    val_loss = train(epoch, best_val_loss)
-    if val_loss < best_val_loss:
-        best_val_loss = val_loss
-        best_epoch = epoch
-print("Optimization Finished!")
-print("Best Epoch: {:04d}".format(best_epoch))
-if args.save_folder:
-    print("Best Epoch: {:04d}".format(best_epoch), file=log)
-    log.flush()
-test()
+data, output = test()
 if log is not None:
     print(save_folder)
     log.close()
+
+plot_predictions(data, output, args.suffix)

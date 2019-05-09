@@ -24,8 +24,8 @@ parser.add_argument('--lr', type=float, default=0.0005,
                     help='Initial learning rate.')
 parser.add_argument('--hidden', type=int, default=512,
                     help='Number of hidden units.')
-parser.add_argument('--num-atoms', type=int, default=5,
-                    help='Number of atoms in simulation.')
+# parser.add_argument('--num-atoms', type=int, default=5,
+#                     help='Number of atoms in simulation.')
 parser.add_argument('--num-classes', type=int, default=2,
                     help='Number of edge types.')
 parser.add_argument('--encoder', type=str, default='mlp',
@@ -42,8 +42,8 @@ parser.add_argument('--edge-types', type=int, default=2,
                     help='The number of edge types to infer.')
 parser.add_argument('--dims', type=int, default=4,
                     help='The number of dimensions (position + velocity).')
-parser.add_argument('--timesteps', type=int, default=49,
-                    help='The number of time steps per sample.')
+# parser.add_argument('--timesteps', type=int, default=49,
+#                     help='The number of time steps per sample.')
 parser.add_argument('--save-folder', type=str, default='logs',
                     help='Where to save the trained model.')
 parser.add_argument('--lr-decay', type=int, default=200,
@@ -52,6 +52,7 @@ parser.add_argument('--gamma', type=float, default=0.5,
                     help='LR decay factor')
 parser.add_argument('--motion', action='store_true', default=False,
                     help='Use motion capture data loader.')
+parser.add_argument('--only-testing', default=False, help='If you only want to test model')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -86,8 +87,10 @@ else:
 train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min = load_data(
     args.batch_size, args.suffix)
 
+num_atoms, timesteps = get_atoms_and_timesteps(args.suffix)
+
 # Generate off-diagonal interaction graph
-off_diag = np.ones([args.num_atoms, args.num_atoms]) - np.eye(args.num_atoms)
+off_diag = np.ones([num_atoms, num_atoms]) - np.eye(num_atoms)
 
 rel_rec = np.array(encode_onehot(np.where(off_diag)[1]), dtype=np.float32)
 rel_send = np.array(encode_onehot(np.where(off_diag)[0]), dtype=np.float32)
@@ -95,7 +98,7 @@ rel_rec = torch.FloatTensor(rel_rec)
 rel_send = torch.FloatTensor(rel_send)
 
 if args.encoder == 'mlp':
-    model = MLPEncoder(args.timesteps * args.dims, args.hidden,
+    model = MLPEncoder(timesteps * args.dims, args.hidden,
                        args.edge_types,
                        args.dropout, args.factor)
 elif args.encoder == 'cnn':
@@ -107,7 +110,7 @@ scheduler = lr_scheduler.StepLR(optimizer, step_size=args.lr_decay,
                                 gamma=args.gamma)
 
 # Linear indices of an upper triangular mx, used for loss calculation
-triu_indices = get_triu_offdiag_indices(args.num_atoms)
+triu_indices = get_triu_offdiag_indices(num_atoms)
 
 if args.cuda:
     model.cuda()
@@ -204,7 +207,7 @@ def test():
             target, volatile=True)
 
         # Limit to same length as train sequence
-        data = data[:, :, :args.timesteps, :].contiguous()
+        data = data[:, :, :timesteps, :].contiguous()
 
         output = model(data, rel_rec, rel_send)
         # Flatten batch dim
@@ -232,7 +235,6 @@ def test():
               'acc_test: {:.10f}'.format(np.mean(acc_test)), file=log)
         log.flush()
     return np.mean(acc_test)
-
 
 # Train model
 t_total = time.time()
