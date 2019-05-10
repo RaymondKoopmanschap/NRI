@@ -56,7 +56,7 @@ parser.add_argument('--non-markov', action='store_true', default=False,
                     help='Use non-Markovian evaluation setting.')
 parser.add_argument('--var', type=float, default=5e-5,
                     help='Output variance.')
-parser.add_argument('--only-testing', default=False, help='If you only want to test model')
+parser.add_argument('--only-testing', action='store_true', default=False, help='If you only want to test model')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -97,7 +97,7 @@ else:
 train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min = load_data(
     args.batch_size, args.suffix)
 
-num_atoms, timesteps, pred_steps = get_atoms_and_train_pred_steps(args.suffix)
+num_atoms, timesteps, pred_steps, dims = get_atoms_and_train_pred_steps_and_dims(args.suffix)
 
 
 class RecurrentBaseline(nn.Module):
@@ -185,7 +185,7 @@ class RecurrentBaseline(nn.Module):
         return outputs
 
 
-model = RecurrentBaseline(args.dims, args.hidden, args.dims,
+model = RecurrentBaseline(dims, args.hidden, dims,
                           num_atoms, args.num_layers, args.dropout)
 if args.load_folder:
     model_file = os.path.join(args.load_folder, 'model.pt')
@@ -431,4 +431,4 @@ if log is not None:
     print(save_folder)
     log.close()
 
-plot_predictions(inputs, output, args.suffix)
+plot_predictions(inputs, output, args.suffix, dims)

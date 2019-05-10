@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 
 
 def my_softmax(input, axis=1):
@@ -486,28 +487,55 @@ def tensor_to_plot_format(tensor):
     return x, y
 
 
-def plot_predictions(data, output, suffix):
-    loc_x, loc_y = tensor_to_plot_format(output)
-    loc_x_data, loc_y_data = tensor_to_plot_format(data)
+def tensor_to_plot_format_3d(tensor):
+    # Only use the first example of the training data
+    print(tensor.shape)
+    pos = tensor[0, :, :, 0:3].cpu().detach().numpy()
+    print(pos.shape)
+    x = pos[:, :, 0].T
+    y = pos[:, :, 1].T
+    z = pos[:, :, 2].T
+    return x, y, z
 
-    plt.plot(loc_x, loc_y, label="prediction")
-    plt.plot(loc_x_data, loc_y_data, label="data")
-    plt.plot(loc_x[0, :], loc_y[0, :], 'd')
-    plt.plot(loc_x_data[0], loc_y_data[0], 'd')
+
+def plot_predictions(data, output, suffix, dims):
+    if dims == 4:
+        loc_x, loc_y = tensor_to_plot_format(output)
+        loc_x_data, loc_y_data = tensor_to_plot_format(data)
+        plt.plot(loc_x, loc_y, label="prediction")
+        plt.plot(loc_x_data, loc_y_data, label="data")
+        plt.plot(loc_x[0, :], loc_y[0, :], 'd')
+        plt.plot(loc_x_data[0], loc_y_data[0], 'd')
+    if dims == 6:
+        loc_x, loc_y, loc_z = tensor_to_plot_format_3d(output)
+        loc_x_data, loc_y_data, loc_z_data = tensor_to_plot_format_3d(data)
+        ax = plt.axes(projection='3d')
+        print(loc_x.shape)
+        print(loc_y.shape)
+        print(loc_z.shape)
+        print(loc_x_data.shape)
+        num_planets = loc_x.shape[1]
+        for i in range(num_planets):
+            ax.plot(loc_x[:, i], loc_y[:, i], loc_z[:, i], label="prediction")
+            ax.plot(loc_x_data[:, i], loc_y_data[:, i], loc_z_data[:, i], label="data")
+            ax.scatter(loc_x[0, i], loc_y[0, i], loc_z[0, i])
+            ax.scatter(loc_x_data[0, i], loc_y_data[0, i], loc_z_data[0, i])
     plt.legend()
     plt.savefig('plots/prediction' + suffix + '.png')
     plt.show()
 
 
-def get_atoms_and_train_pred_steps(suffix):
+def get_atoms_and_train_pred_steps_and_dims(suffix):
 
-    train_data = np.load('./data/loc_train' + suffix + '.npy')
+    train_data_loc = np.load('./data/loc_train' + suffix + '.npy')
+    train_data_vel = np.load('./data/loc_train' + suffix + '.npy')
     test_data = np.load('./data/loc_test' + suffix + '.npy')
-    num_atoms = train_data.shape[3]
-    time_steps = train_data.shape[1]
+    num_atoms = train_data_loc.shape[3]
+    time_steps = train_data_loc.shape[1]
     test_steps = test_data.shape[1]
     pred_steps = test_steps - time_steps
+    dims = train_data_loc.shape[2] + train_data_vel.shape[2]
 
-    return num_atoms, time_steps, pred_steps
+    return num_atoms, time_steps, pred_steps, dims
 
 

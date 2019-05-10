@@ -18,8 +18,8 @@ python gen_planet_dataset.py --planets 'earth mars'
 All the specified planets are combined into one dataset which is used for the NRI
 
 
-If your model is saved under logs/... use that and set --only-testing to True if you only want to test on this model.
+If your model is saved under logs/... use that and set --only-testing if you only want to test on this model.
 ```
-python train.py --suffix _planets2 --only-testing True --load-folder logs/folder_name
+python train.py --suffix _planets2 --only-testing --load-folder logs/folder_name
 ```
 

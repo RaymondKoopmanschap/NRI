@@ -87,7 +87,7 @@ else:
 train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min = load_data(
     args.batch_size, args.suffix)
 
-num_atoms, timesteps, pred_steps = get_atoms_and_train_pred_steps(args.suffix)
+num_atoms, timesteps, pred_steps, dims = get_atoms_and_train_pred_steps_and_dims(args.suffix)
 
 # Generate off-diagonal interaction graph
 off_diag = np.ones([num_atoms, num_atoms]) - np.eye(num_atoms)
@@ -98,11 +98,11 @@ rel_rec = torch.FloatTensor(rel_rec)
 rel_send = torch.FloatTensor(rel_send)
 
 if args.encoder == 'mlp':
-    model = MLPEncoder(timesteps * args.dims, args.hidden,
+    model = MLPEncoder(timesteps * dims, args.hidden,
                        args.edge_types,
                        args.dropout, args.factor)
 elif args.encoder == 'cnn':
-    model = CNNEncoder(args.dims, args.hidden, args.edge_types,
+    model = CNNEncoder(dims, args.hidden, args.edge_types,
                        args.dropout, args.factor)
 
 optimizer = optim.Adam(model.parameters(), lr=args.lr)

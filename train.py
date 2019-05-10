@@ -71,7 +71,7 @@ parser.add_argument('--prior', action='store_true', default=False,
                     help='Whether to use sparsity prior.')
 parser.add_argument('--dynamic-graph', action='store_true', default=False,
                     help='Whether test with dynamically re-computed graph.')
-parser.add_argument('--only-testing', default=False, help='If you only want to test model')
+parser.add_argument('--only-testing', action='store_true',  default=False, help='If you only want to test model')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -109,7 +109,7 @@ train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min = lo
     args.batch_size, args.suffix)
 
 
-num_atoms, timesteps, pred_steps = get_atoms_and_train_pred_steps(args.suffix)
+num_atoms, timesteps, pred_steps, dims = get_atoms_and_train_pred_steps_and_dims(args.suffix)
 
 # Generate off-diagonal interaction graph
 off_diag = np.ones([num_atoms, num_atoms]) - np.eye(num_atoms)
@@ -120,16 +120,16 @@ rel_rec = torch.FloatTensor(rel_rec)
 rel_send = torch.FloatTensor(rel_send)
 
 if args.encoder == 'mlp':
-    encoder = MLPEncoder(timesteps * args.dims, args.encoder_hidden,
+    encoder = MLPEncoder(timesteps * dims, args.encoder_hidden,
                          args.edge_types,
                          args.encoder_dropout, args.factor)
 elif args.encoder == 'cnn':
-    encoder = CNNEncoder(args.dims, args.encoder_hidden,
+    encoder = CNNEncoder(dims, args.encoder_hidden,
                          args.edge_types,
                          args.encoder_dropout, args.factor)
 
 if args.decoder == 'mlp':
-    decoder = MLPDecoder(n_in_node=args.dims,
+    decoder = MLPDecoder(n_in_node=dims,
                          edge_types=args.edge_types,
                          msg_hid=args.decoder_hidden,
                          msg_out=args.decoder_hidden,
@@ -137,7 +137,7 @@ if args.decoder == 'mlp':
                          do_prob=args.decoder_dropout,
                          skip_first=args.skip_first)
 elif args.decoder == 'rnn':
-    decoder = RNNDecoder(n_in_node=args.dims,
+    decoder = RNNDecoder(n_in_node=dims,
                          edge_types=args.edge_types,
                          n_hid=args.decoder_hidden,
                          do_prob=args.decoder_dropout,
@@ -408,4 +408,4 @@ if log is not None:
     print(save_folder)
     log.close()
 
-plot_predictions(data, output, args.suffix)
+plot_predictions(data, output, args.suffix, dims)

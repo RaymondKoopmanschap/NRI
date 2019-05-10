@@ -54,15 +54,15 @@ parser.add_argument('--gamma', type=float, default=0.5,
                     help='LR decay factor')
 parser.add_argument('--motion', action='store_true', default=False,
                     help='Use motion capture data loader.')
-parser.add_argument('--dims', type=int, default=4,
-                    help='The number of dimensions (position + velocity).')
+# parser.add_argument('--dims', type=int, default=4,
+#                     help='The number of dimensions (position + velocity).')
 parser.add_argument('--skip-first', action='store_true', default=False,
                     help='Skip first edge type in decoder.')
 parser.add_argument('--var', type=float, default=5e-5,
                     help='Output variance.')
 parser.add_argument('--fully-connected', action='store_true', default=False,
                     help='Use fully-connected graph.')
-parser.add_argument('--only-testing', default=False, help='If you only want to test model')
+parser.add_argument('--only-testing', action='store_true', default=False, help='If you only want to test model')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -97,7 +97,8 @@ else:
 train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min = load_data(
     args.batch_size, args.suffix)
 
-num_atoms, timesteps, pred_steps = get_atoms_and_train_pred_steps(args.suffix)
+num_atoms, timesteps, pred_steps, dims = get_atoms_and_train_pred_steps_and_dims(args.suffix)
+print(dims)
 
 # Generate fully-connected interaction graph (sparse graphs would also work)
 off_diag = np.ones([num_atoms, num_atoms]) - np.eye(num_atoms)
@@ -108,7 +109,7 @@ rel_rec = torch.FloatTensor(rel_rec)
 rel_send = torch.FloatTensor(rel_send)
 
 if args.decoder == 'mlp':
-    model = MLPDecoder(n_in_node=args.dims,
+    model = MLPDecoder(n_in_node=dims,
                        edge_types=args.edge_types,
                        msg_hid=args.hidden,
                        msg_out=args.hidden,
@@ -116,7 +117,7 @@ if args.decoder == 'mlp':
                        do_prob=args.dropout,
                        skip_first=args.skip_first)
 elif args.decoder == 'rnn':
-    model = RNNDecoder(n_in_node=args.dims,
+    model = RNNDecoder(n_in_node=dims,
                        edge_types=args.edge_types,
                        n_hid=args.hidden,
                        do_prob=args.dropout,
@@ -397,4 +398,4 @@ if log is not None:
     print(save_folder)
     log.close()
 
-plot_predictions(data, output, args.suffix)
+plot_predictions(data, output, args.suffix, dims)
