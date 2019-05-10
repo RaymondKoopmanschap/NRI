@@ -69,6 +69,9 @@ if args.cuda:
 
 log = None
 # Save model and meta-data. Always saves in a new folder.
+if args.only_testing:
+    args.save_folder = False
+
 if args.save_folder:
     exp_counter = 0
     now = datetime.datetime.now()
@@ -95,6 +98,7 @@ train_loader, valid_loader, test_loader, loc_max, loc_min, vel_max, vel_min = lo
     args.batch_size, args.suffix)
 
 num_atoms, timesteps, pred_steps = get_atoms_and_train_pred_steps(args.suffix)
+
 
 class RecurrentBaseline(nn.Module):
     """LSTM model for joint trajectory prediction."""
@@ -259,9 +263,9 @@ def train(epoch, best_val_loss):
         mse = F.mse_loss(output, target)
         mse_baseline = F.mse_loss(data[:, :, :-1, :], data[:, :, 1:, :])
 
-        loss_val.append(loss.data[0])
-        mse_val.append(mse.data[0])
-        mse_baseline_val.append(mse_baseline.data[0])
+        loss_val.append(loss.data.item())
+        mse_val.append(mse.data.item())
+        mse_baseline_val.append(mse_baseline.data.item())
 
     print('Epoch: {:04d}'.format(epoch),
           'nll_train: {:.10f}'.format(np.mean(loss_train)),
@@ -295,7 +299,11 @@ def test():
     counter = 0
 
     model.eval()
-    model.load_state_dict(torch.load(model_file))
+    if args.cuda:
+        model.load_state_dict(torch.load(model_file))
+    else:
+        model.load_state_dict(torch.load(model_file, map_location='cpu'))
+
     for batch_idx, (inputs, relations) in enumerate(test_loader):
 
         # assert (inputs.size(2) - timesteps) >= timesteps
@@ -317,9 +325,9 @@ def test():
         mse = F.mse_loss(output, target)
         mse_baseline = F.mse_loss(ins_cut[:, :, :-1, :], ins_cut[:, :, 1:, :])
 
-        loss_test.append(loss.data[0])
-        mse_test.append(mse.data[0])
-        mse_baseline_test.append(mse_baseline.data[0])
+        loss_test.append(loss.data.item())
+        mse_test.append(mse.data.item())
+        mse_baseline_test.append(mse_baseline.data.item())
 
         if args.motion or args.non_markov:
             # RNN decoder evaluation setting

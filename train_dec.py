@@ -74,6 +74,10 @@ if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
 log = None
+
+if args.only_testing:
+    args.save_folder = False
+
 # Save model and meta-data. Always saves in a new folder.
 if args.save_folder:
     now = datetime.datetime.now()
@@ -269,7 +273,10 @@ def test():
     counter = 0
 
     model.eval()
-    model.load_state_dict(torch.load(model_file, map_location='cpu'))
+    if args.cuda:
+        model.load_state_dict(torch.load(model_file))
+    else:
+        model.load_state_dict(torch.load(model_file, map_location='cpu'))
 
 
     for batch_idx, (inputs, relations) in enumerate(test_loader):
@@ -367,6 +374,7 @@ def test():
         print('MSE Baseline: {}'.format(mse_baseline_str), file=log)
         log.flush()
     return inputs, output
+
 
 if args.only_testing is False:
     # Train model
