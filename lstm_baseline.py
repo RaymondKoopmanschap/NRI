@@ -40,8 +40,8 @@ parser.add_argument('--save-folder', type=str, default='logs',
 parser.add_argument('--load-folder', type=str, default='',
                     help='Where to load the trained model if finetunning. ' +
                          'Leave empty to train from scratch')
-parser.add_argument('--dims', type=int, default=4,
-                    help='The number of dimensions (position + velocity).')
+# parser.add_argument('--dims', type=int, default=4,
+#                     help='The number of dimensions (position + velocity).')
 # parser.add_argument('--timesteps', type=int, default=49,
 #                     help='The number of time steps per sample.')
 parser.add_argument('--prediction-steps', type=int, default=10, metavar='N',
@@ -189,7 +189,10 @@ model = RecurrentBaseline(dims, args.hidden, dims,
                           num_atoms, args.num_layers, args.dropout)
 if args.load_folder:
     model_file = os.path.join(args.load_folder, 'model.pt')
-    model.load_state_dict(torch.load(model_file))
+    if args.cuda:
+        model.load_state_dict(torch.load(model_file))
+    else:
+        model.load_state_dict(torch.load(model_file, map_location='cpu'))
     args.save_folder = False
 
 optimizer = optim.Adam(list(model.parameters()), lr=args.lr)
@@ -357,8 +360,8 @@ def test():
             output = model(inputs, 100, burn_in=True,
                            burn_in_steps=timesteps)
 
-            output = output[:, :, timesteps:timesteps + 20, :]
-            target = inputs[:, :, timesteps + 1:timesteps + 21, :]
+            output = output[:, :, timesteps:timesteps + pred_steps, :]
+            target = inputs[:, :, timesteps + 1:timesteps + pred_steps, :]
 
             mse = ((target - output) ** 2).mean(dim=0).mean(dim=0).mean(dim=-1)
             tot_mse += mse.data.cpu().numpy()
