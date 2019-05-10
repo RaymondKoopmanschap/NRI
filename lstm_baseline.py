@@ -119,7 +119,7 @@ class RecurrentBaseline(nn.Module):
     def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                nn.init.xavier_normal(m.weight.data)
+                nn.init.xavier_normal_(m.weight.data)
                 m.bias.data.fill_(0.1)
             elif isinstance(m, nn.BatchNorm1d):
                 m.weight.data.fill_(1)
@@ -243,9 +243,9 @@ def train(epoch, best_val_loss):
         loss.backward()
         optimizer.step()
 
-        loss_train.append(loss.data[0])
-        mse_train.append(mse.data[0])
-        mse_baseline_train.append(mse_baseline.data[0])
+        loss_train.append(loss.data.item())
+        mse_train.append(mse.data.item())
+        mse_baseline_train.append(mse_baseline.data.item())
 
     model.eval()
     for batch_idx, (data, relations) in enumerate(valid_loader):
