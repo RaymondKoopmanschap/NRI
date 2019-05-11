@@ -69,14 +69,14 @@ def generate_data(prefix, planets, num_samples, num_steps, suffix, threeD):
             vel_all = np.concatenate([vel_all, vel_planet], axis=3)
 
     num_planets = str(len(planets))
-    edges = np.zeros((len(planets), len(planets)))
+    edges = np.zeros((1, len(planets), len(planets)))
 
     # This makes sure that the earth influences the moon and sun influences all other planets
     if 'earth' in planets:
         if 'moon' in planets:
-            edges[planets.index('earth'), planets.index('moon')] = 1
+            edges[:, planets.index('earth'), planets.index('moon')] = 1
     if 'sun' in planets:
-        edges[planets.index('sun'), :] = 1
+        edges[:, planets.index('sun'), :] = 1
 
     if threeD:
         filename = prefix + '_planets' + num_planets + '_' + suffix + '3D' + '.npy'
