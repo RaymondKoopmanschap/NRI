@@ -72,6 +72,8 @@ parser.add_argument('--prior', action='store_true', default=False,
 parser.add_argument('--dynamic-graph', action='store_true', default=False,
                     help='Whether test with dynamically re-computed graph.')
 parser.add_argument('--only-testing', action='store_true',  default=False, help='If you only want to test model')
+parser.add_argument('--save-name', type=str, default=False, help='specify the name of the file you want to save your'
+                                                                 'model')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -88,10 +90,13 @@ if args.dynamic_graph:
 
 # Save model and meta-data. Always saves in a new sub-folder.
 if args.save_folder:
-    exp_counter = 0
-    now = datetime.datetime.now()
-    timestamp = now.isoformat()
-    save_folder = '{}/exp{}/'.format(args.save_folder, timestamp)
+    if args.save_name:
+        save_folder = args.save_folder + '/' + args.save_name
+    else:
+        exp_counter = 0
+        now = datetime.datetime.now()
+        timestamp = now.isoformat()
+        save_folder = '{}/exp{}/'.format(args.save_folder, timestamp)
     os.mkdir(save_folder)
     meta_file = os.path.join(save_folder, 'metadata.pkl')
     encoder_file = os.path.join(save_folder, 'encoder.pt')

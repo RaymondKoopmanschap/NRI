@@ -57,6 +57,8 @@ parser.add_argument('--non-markov', action='store_true', default=False,
 parser.add_argument('--var', type=float, default=5e-5,
                     help='Output variance.')
 parser.add_argument('--only-testing', action='store_true', default=False, help='If you only want to test model')
+parser.add_argument('--save-name', type=str, default=False, help='specify the name of the file you want to save your'
+                                                                 'model')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -73,10 +75,13 @@ if args.only_testing:
     args.save_folder = False
 
 if args.save_folder:
-    exp_counter = 0
-    now = datetime.datetime.now()
-    timestamp = now.isoformat()
-    save_folder = '{}/exp{}/'.format(args.save_folder, timestamp)
+    if args.save_name:
+        save_folder = args.save_folder + '/' + args.save_name
+    else:
+        exp_counter = 0
+        now = datetime.datetime.now()
+        timestamp = now.isoformat()
+        save_folder = '{}/exp{}/'.format(args.save_folder, timestamp)
     while os.path.isdir(save_folder):
         exp_counter += 1
         save_folder = os.path.join(args.save_folder,
