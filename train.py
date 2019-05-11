@@ -238,9 +238,9 @@ def train(epoch, best_val_loss):
         loss.backward()
         optimizer.step()
 
-        mse_train.append(F.mse_loss(output, target).data[0].item())
-        nll_train.append(loss_nll.data[0].item())
-        kl_train.append(loss_kl.data[0].item())
+        mse_train.append(F.mse_loss(output, target).data.item())
+        nll_train.append(loss_nll.data.item())
+        kl_train.append(loss_kl.data.item())
 
     nll_val = []
     acc_val = []
@@ -268,9 +268,9 @@ def train(epoch, best_val_loss):
         acc = edge_accuracy(logits, relations)
         acc_val.append(acc)
 
-        mse_val.append(F.mse_loss(output, target).data[0].item())
-        nll_val.append(loss_nll.data[0].item())
-        kl_val.append(loss_kl.data[0].item())
+        mse_val.append(F.mse_loss(output, target).data.item())
+        nll_val.append(loss_nll.data.item())
+        kl_val.append(loss_kl.data.item())
 
     print('Epoch: {:04d}'.format(epoch),
           'nll_train: {:.10f}'.format(np.mean(nll_train)),
@@ -336,9 +336,9 @@ def test():
         acc = edge_accuracy(logits, relations)
         acc_test.append(acc)
 
-        mse_test.append(F.mse_loss(output, target).data[0].item())
-        nll_test.append(loss_nll.data[0].item())
-        kl_test.append(loss_kl.data[0].item())
+        mse_test.append(F.mse_loss(output, target).data.item())
+        nll_test.append(loss_nll.data.item())
+        kl_test.append(loss_kl.data.item())
 
         # For plotting purposes
         if args.decoder == 'rnn':
