@@ -13,7 +13,7 @@ VALUES = {
     'table_type': 'VECTOR',
     'center': '500@10',
     'ref_plane': 'FRAME',
-    'start_time': '1755-01-01',
+    'start_time': '1901-01-01', # 1755
     'stop_time': '2000-01-01',
     'step_size': '1 d',
     'quantities': '1',   # Only used when table_type is OBSERVER
