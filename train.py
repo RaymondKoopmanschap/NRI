@@ -75,6 +75,7 @@ parser.add_argument('--only-testing', action='store_true',  default=False, help=
 parser.add_argument('--save-name', type=str, default=False, help='specify the name of the file you want to save your'
                                                                  'model')
 
+log = None
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 args.factor = not args.no_factor
@@ -87,6 +88,9 @@ if args.cuda:
 
 if args.dynamic_graph:
     print("Testing with dynamically re-computed graph.")
+
+if args.only_testing:
+    args.save_folder = False
 
 # Save model and meta-data. Always saves in a new sub-folder.
 if args.save_folder:
@@ -152,9 +156,15 @@ elif args.decoder == 'sim':
 
 if args.load_folder:
     encoder_file = os.path.join(args.load_folder, 'encoder.pt')
-    encoder.load_state_dict(torch.load(encoder_file))
     decoder_file = os.path.join(args.load_folder, 'decoder.pt')
-    decoder.load_state_dict(torch.load(decoder_file))
+    if args.cuda:
+        encoder.load_state_dict(torch.load(encoder_file))
+    else:
+        encoder.load_state_dict(torch.load(encoder_file, map_location='cpu'))
+    if args.cuda:
+        decoder.load_state_dict(torch.load(decoder_file))
+    else:
+        decoder.load_state_dict(torch.load(decoder_file, map_location='cpu'))
 
     args.save_folder = False
 
@@ -310,8 +320,16 @@ def test():
 
     encoder.eval()
     decoder.eval()
-    encoder.load_state_dict(torch.load(encoder_file))
-    decoder.load_state_dict(torch.load(decoder_file))
+    if args.cuda:
+        encoder.load_state_dict(torch.load(encoder_file))
+    else:
+        encoder.load_state_dict(torch.load(encoder_file, map_location='cpu'))
+    if args.cuda:
+        decoder.load_state_dict(torch.load(decoder_file))
+    else:
+        decoder.load_state_dict(torch.load(decoder_file, map_location='cpu'))
+
+    edge_preds = []
     for batch_idx, (data, relations) in enumerate(test_loader):
         if args.cuda:
             data, relations = data.cuda(), relations.cuda()
@@ -334,6 +352,8 @@ def test():
         loss_kl = kl_categorical_uniform(prob, num_atoms, args.edge_types)
 
         acc = edge_accuracy(logits, relations)
+        _, preds = logits.max(-1)
+        edge_preds.append(np.sum(preds.detach().numpy(), axis=0))
         acc_test.append(acc)
 
         mse_test.append(F.mse_loss(output, target).data.item())
@@ -363,6 +383,9 @@ def test():
         tot_mse += mse.data.cpu().numpy()
         counter += 1
 
+    edge_preds = np.array([np.array(xi) for xi in edge_preds])
+    average_edge = np.sum(edge_preds, axis=0)
+    print(average_edge/np.sum(average_edge))
     mean_mse = tot_mse / counter
     mse_str = '['
     for mse_step in mean_mse[:-1]:
