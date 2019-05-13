@@ -38,7 +38,8 @@ def main(planet_list):
     planets = planet_list.split()
     # To use more planets see: https://ssd.jpl.nasa.gov/horizons.cgi?s_target=1#top
     planet_dict = {'sun': '10', 'mercury': '199', 'venus': '299', 'moon': '301', 'earth': '399', 'mars': '499',
-                   'jupiter': '599', 'saturn': '699', 'uranus': '799', 'neptune': '899', 'pluto': '999'}
+                   'phobos': '401', 'jupiter': '599', 'saturn': '699', 'uranus': '799', 'neptune': '899',
+                   'pluto': '999'}
 
     for planet in planets:
         planet_idx = planet_dict[planet]

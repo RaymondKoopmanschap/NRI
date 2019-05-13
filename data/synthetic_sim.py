@@ -71,7 +71,7 @@ class SpringSim(object):
         return dist
 
     def sample_trajectory(self, T=10000, sample_freq=10,
-                          spring_prob=[0, 0, 1]): # 1. / 2, 0, 1. / 2
+                          spring_prob=[1. / 2, 0, 1. / 2]): # 1. / 2, 0, 1. / 2
         n = self.n_balls
         assert (T % sample_freq == 0)
         T_save = int(T / sample_freq - 1)
