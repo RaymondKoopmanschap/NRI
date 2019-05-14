@@ -507,7 +507,7 @@ def plot_predictions(data, output, suffix, dims):
         loc_x_data, loc_y_data = tensor_to_plot_format(data)
         plt.plot(loc_x, loc_y, ':', label="prediction", linewidth=3)
         plt.plot(loc_x_data, loc_y_data, label="data", linewidth=1)
-        plt.plot(loc_x[0, :], loc_y[0, :], '.', color='')
+        plt.plot(loc_x[0, :], loc_y[0, :], '.', color='r')
         plt.plot(loc_x_data[0], loc_y_data[0], '.', color='r')
     if dims == 6:
         loc_x, loc_y, loc_z = tensor_to_plot_format_3d(output)
