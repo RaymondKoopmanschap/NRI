@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
+import matplotlib as mpl
+from cycler import cycler
 
 
 def my_softmax(input, axis=1):
@@ -499,13 +501,14 @@ def tensor_to_plot_format_3d(tensor):
 
 
 def plot_predictions(data, output, suffix, dims):
+    mpl.rcParams['axes.prop_cycle'] = cycler('color', ['royalblue', 'orange', 'lawngreen'])
     if dims == 4:
         loc_x, loc_y = tensor_to_plot_format(output)
         loc_x_data, loc_y_data = tensor_to_plot_format(data)
-        plt.plot(loc_x, loc_y, label="prediction")
-        plt.plot(loc_x_data, loc_y_data, label="data")
-        plt.plot(loc_x[0, :], loc_y[0, :], 'd')
-        plt.plot(loc_x_data[0], loc_y_data[0], 'd')
+        plt.plot(loc_x, loc_y, ':', label="prediction", linewidth=3)
+        plt.plot(loc_x_data, loc_y_data, label="data", linewidth=1)
+        plt.plot(loc_x[0, :], loc_y[0, :], '.', color='')
+        plt.plot(loc_x_data[0], loc_y_data[0], '.', color='r')
     if dims == 6:
         loc_x, loc_y, loc_z = tensor_to_plot_format_3d(output)
         loc_x_data, loc_y_data, loc_z_data = tensor_to_plot_format_3d(data)
