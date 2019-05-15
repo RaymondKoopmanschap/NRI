@@ -353,7 +353,7 @@ def test():
 
         acc = edge_accuracy(logits, relations)
         _, preds = logits.max(-1)
-        edge_preds.append(np.sum(preds.detach().numpy(), axis=0))
+        edge_preds.append(np.sum(preds.cpu().detach().numpy(), axis=0))
         acc_test.append(acc)
 
         mse_test.append(F.mse_loss(output, target).data.item())
@@ -384,8 +384,9 @@ def test():
         counter += 1
 
     edge_preds = np.array([np.array(xi) for xi in edge_preds])
-    average_edge = np.sum(edge_preds, axis=0)
-    print(average_edge/np.sum(average_edge))
+    total_edge = np.sum(edge_preds, axis=0)
+    average_edge = total_edge/np.sum(total_edge)
+    print(average_edge)
     mean_mse = tot_mse / counter
     mse_str = '['
     for mse_step in mean_mse[:-1]:
