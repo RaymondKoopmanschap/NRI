@@ -501,6 +501,7 @@ def tensor_to_plot_format_3d(tensor):
 
 
 def plot_predictions(data, output, suffix, dims):
+    mpl.rcParams['axes.prop_cycle'] = cycler('color', ['royalblue', 'orange', 'lawngreen'])
     if dims == 4:
         mpl.rcParams['axes.prop_cycle'] = cycler('color', ['royalblue', 'orange', 'lawngreen'])
         loc_x, loc_y = tensor_to_plot_format(output)
